@@ -1,3 +1,53 @@
+<template>
+  <div class="auth-container">
+    <div class="auth-card">
+      <h1 class="auth-title">Log In to Your Account</h1>
+
+      <form @submit.prevent="handleSubmit" class="auth-form">
+        <div v-if="generalError" class="error-message general-error">
+          {{ generalError }}
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input
+              id="email"
+              v-model="formData.email"
+              type="email"
+              placeholder="Enter your email address"
+              :class="{ 'error-input': formErrors.email }"
+          />
+          <span v-if="formErrors.email" class="error-message">{{ formErrors.email }}</span>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input
+              id="password"
+              v-model="formData.password"
+              type="password"
+              placeholder="Enter your password"
+              :class="{ 'error-input': formErrors.password }"
+          />
+          <span v-if="formErrors.password" class="error-message">{{ formErrors.password }}</span>
+        </div>
+
+        <button
+            type="submit"
+            class="auth-button"
+            :disabled="isSubmitting"
+        >
+          {{ isSubmitting ? 'Logging In...' : 'Log In' }}
+        </button>
+
+        <div class="auth-links">
+          <p>Don't have an account? <router-link to="/auth/register">Create Account</router-link></p>
+        </div>
+      </form>
+    </div>
+  </div>
+</template>
+
 <script setup>
 import { ref, reactive } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
@@ -23,12 +73,10 @@ const generalError = ref('');
 const validateForm = () => {
   let isValid = true;
   
-  // Reset errors
   formErrors.email = '';
   formErrors.password = '';
   generalError.value = '';
   
-  // Validate email
   if (!formData.email.trim()) {
     formErrors.email = 'Email is required';
     isValid = false;
@@ -37,7 +85,6 @@ const validateForm = () => {
     isValid = false;
   }
   
-  // Validate password
   if (!formData.password) {
     formErrors.password = 'Password is required';
     isValid = false;
@@ -58,7 +105,6 @@ const handleSubmit = async () => {
     });
     
     if (success) {
-      // Login successful, redirect to dashboard or intended route
       const redirectPath = route.query.redirect || '/dashboard';
       router.push(redirectPath);
     } else {
@@ -73,55 +119,6 @@ const handleSubmit = async () => {
 };
 </script>
 
-<template>
-  <div class="auth-container">
-    <div class="auth-card">
-      <h1 class="auth-title">Log In to Your Account</h1>
-      
-      <form @submit.prevent="handleSubmit" class="auth-form">
-        <div v-if="generalError" class="error-message general-error">
-          {{ generalError }}
-        </div>
-        
-        <div class="form-group">
-          <label for="email">Email Address</label>
-          <input 
-            id="email"
-            v-model="formData.email"
-            type="email"
-            placeholder="Enter your email address"
-            :class="{ 'error-input': formErrors.email }"
-          />
-          <span v-if="formErrors.email" class="error-message">{{ formErrors.email }}</span>
-        </div>
-        
-        <div class="form-group">
-          <label for="password">Password</label>
-          <input 
-            id="password"
-            v-model="formData.password"
-            type="password"
-            placeholder="Enter your password"
-            :class="{ 'error-input': formErrors.password }"
-          />
-          <span v-if="formErrors.password" class="error-message">{{ formErrors.password }}</span>
-        </div>
-        
-        <button 
-          type="submit" 
-          class="auth-button"
-          :disabled="isSubmitting"
-        >
-          {{ isSubmitting ? 'Logging In...' : 'Log In' }}
-        </button>
-        
-        <div class="auth-links">
-          <p>Don't have an account? <router-link to="/auth/register">Create Account</router-link></p>
-        </div>
-      </form>
-    </div>
-  </div>
-</template>
 
 <style lang="scss" scoped>
 .auth-container {

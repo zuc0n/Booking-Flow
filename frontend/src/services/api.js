@@ -1,7 +1,6 @@
 import axios from 'axios';
 import { useAuthStore } from '../stores/auth';
 
-// Create axios instance with base URL and credentials
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
   withCredentials: true, // Important for cookies
@@ -20,7 +19,6 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor for handling common errors and token refresh
 api.interceptors.response.use(
   (response) => {
     return response;
@@ -28,34 +26,28 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
     
-    // If error is 401 Unauthorized and not already retrying
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       
       try {
-        // Try to refresh the token
         const refreshResponse = await axios.post(
           `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/auth/refresh-token`,
           {},
           { withCredentials: true }
         );
         
-        // Retry the original request
         return api(originalRequest);
       } catch (refreshError) {
-        // If refresh token fails, logout user
         const authStore = useAuthStore();
         authStore.user = null;
         localStorage.removeItem('isAuthenticated');
 
-        // Redirect to login page
         window.location.href = '/auth/login';
         
         return Promise.reject(refreshError);
       }
     }
     
-    // Handle other errors
     return Promise.reject(error);
   }
 );

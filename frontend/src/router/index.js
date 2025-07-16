@@ -55,28 +55,20 @@ const router = createRouter({
   history: createWebHistory(),
   routes,
   scrollBehavior() {
-    // Always scroll to top
     return { top: 0 };
   }
 });
 
-// Navigation guard
 router.beforeEach((to, from, next) => {
-  // Set page title
   document.title = to.meta.title || 'Hotel Booking';
 
-  // Check if route requires authentication
   const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
 
-  // Route guard logic
   if (to.meta.requiresAuth && !isAuthenticated) {
-    // If auth is required but user is not authenticated
     next({ name: 'Login', query: { redirect: to.fullPath } });
   } else if (to.meta.guest && isAuthenticated) {
-    // If route is for guests only but user is authenticated
     next({ name: 'Dashboard' });
   } else {
-    // Otherwise proceed normally
     next();
   }
 });

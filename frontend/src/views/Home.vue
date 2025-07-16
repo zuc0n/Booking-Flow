@@ -1,3 +1,88 @@
+<template>
+  <div class="home-container">
+    <div class="hero-banner">
+      <div class="hero-content">
+        <h1>Find Your Perfect Stay</h1>
+        <p>Search for rooms and book your next getaway with ease</p>
+      </div>
+    </div>
+
+    <div class="search-container">
+      <div class="search-card">
+        <h2>Search for Rooms</h2>
+
+        <form @submit.prevent="handleSubmit" class="search-form">
+          <div v-if="generalError" class="error-message general-error">
+            {{ generalError }}
+          </div>
+
+          <div class="form-group">
+            <label for="guests">Number of Guests</label>
+            <div class="number-input">
+              <button
+                  type="button"
+                  @click="searchForm.guests = Math.max(1, searchForm.guests - 1)"
+                  class="number-button"
+              >
+                -
+              </button>
+              <input
+                  id="guests"
+                  v-model.number="searchForm.guests"
+                  type="number"
+                  min="1"
+                  max="10"
+                  :class="{ 'error-input': formErrors.guests }"
+              />
+              <button
+                  type="button"
+                  @click="searchForm.guests = Math.min(10, searchForm.guests + 1)"
+                  class="number-button"
+              >
+                +
+              </button>
+            </div>
+            <span v-if="formErrors.guests" class="error-message">{{ formErrors.guests }}</span>
+          </div>
+
+          <div class="form-group">
+            <label for="checkIn">Check-in Date</label>
+            <input
+                id="checkIn"
+                v-model="searchForm.checkIn"
+                type="date"
+                :min="todayFormatted"
+                :class="{ 'error-input': formErrors.checkIn }"
+            />
+            <span v-if="formErrors.checkIn" class="error-message">{{ formErrors.checkIn }}</span>
+          </div>
+
+          <div class="form-group">
+            <label for="checkOut">Check-out Date</label>
+            <input
+                id="checkOut"
+                v-model="searchForm.checkOut"
+                type="date"
+                :min="minCheckOutDate"
+                :class="{ 'error-input': formErrors.checkOut }"
+            />
+            <span v-if="formErrors.checkOut" class="error-message">{{ formErrors.checkOut }}</span>
+          </div>
+
+          <button
+              type="submit"
+              class="search-button"
+              :disabled="isSubmitting"
+          >
+            {{ isSubmitting ? 'Searching...' : 'Search for Rooms' }}
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</template>
+
+
 <script setup>
 import { ref, reactive, computed } from 'vue';
 import { useRouter } from 'vue-router';
@@ -6,12 +91,10 @@ import { useBookingStore } from '../stores/booking';
 const router = useRouter();
 const bookingStore = useBookingStore();
 
-// Get today's date and tomorrow's date for min values
 const today = new Date();
 const tomorrow = new Date(today);
 tomorrow.setDate(tomorrow.getDate() + 1);
 
-// Format dates for input min values
 const formatDate = (date) => {
   return date.toISOString().split('T')[0];
 };
@@ -19,14 +102,12 @@ const formatDate = (date) => {
 const todayFormatted = formatDate(today);
 const tomorrowFormatted = formatDate(tomorrow);
 
-// Search form data
 const searchForm = reactive({
   guests: 1,
   checkIn: todayFormatted,
   checkOut: tomorrowFormatted
 });
 
-// Form validation
 const formErrors = reactive({
   guests: '',
   checkIn: '',
@@ -36,7 +117,6 @@ const formErrors = reactive({
 const isSubmitting = ref(false);
 const generalError = ref('');
 
-// Computed property for minimum check-out date
 const minCheckOutDate = computed(() => {
   if (!searchForm.checkIn) return tomorrowFormatted;
   
@@ -47,17 +127,14 @@ const minCheckOutDate = computed(() => {
   return formatDate(nextDay);
 });
 
-// Validate form
 const validateForm = () => {
   let isValid = true;
   
-  // Reset errors
   formErrors.guests = '';
   formErrors.checkIn = '';
   formErrors.checkOut = '';
   generalError.value = '';
   
-  // Validate guests
   if (!searchForm.guests || searchForm.guests < 1) {
     formErrors.guests = 'At least 1 guest is required';
     isValid = false;
@@ -66,7 +143,6 @@ const validateForm = () => {
     isValid = false;
   }
   
-  // Validate check-in date
   if (!searchForm.checkIn) {
     formErrors.checkIn = 'Check-in date is required';
     isValid = false;
@@ -78,7 +154,6 @@ const validateForm = () => {
     }
   }
   
-  // Validate check-out date
   if (!searchForm.checkOut) {
     formErrors.checkOut = 'Check-out date is required';
     isValid = false;
@@ -95,21 +170,18 @@ const validateForm = () => {
   return isValid;
 };
 
-// Handle form submission
 const handleSubmit = async () => {
   if (!validateForm()) return;
   
   isSubmitting.value = true;
   
   try {
-    // Store search parameters in the booking store
     bookingStore.setSearchParams({
       guests: searchForm.guests,
       checkIn: searchForm.checkIn,
       checkOut: searchForm.checkOut
     });
     
-    // Navigate to room selection page
     router.push({ name: 'RoomList' });
   } catch (error) {
     generalError.value = 'An error occurred. Please try again.';
@@ -120,89 +192,6 @@ const handleSubmit = async () => {
 };
 </script>
 
-<template>
-  <div class="home-container">
-    <div class="hero-banner">
-      <div class="hero-content">
-        <h1>Find Your Perfect Stay</h1>
-        <p>Search for rooms and book your next getaway with ease</p>
-      </div>
-    </div>
-    
-    <div class="search-container">
-      <div class="search-card">
-        <h2>Search for Rooms</h2>
-        
-        <form @submit.prevent="handleSubmit" class="search-form">
-          <div v-if="generalError" class="error-message general-error">
-            {{ generalError }}
-          </div>
-          
-          <div class="form-group">
-            <label for="guests">Number of Guests</label>
-            <div class="number-input">
-              <button 
-                type="button" 
-                @click="searchForm.guests = Math.max(1, searchForm.guests - 1)"
-                class="number-button"
-              >
-                -
-              </button>
-              <input 
-                id="guests"
-                v-model.number="searchForm.guests"
-                type="number"
-                min="1"
-                max="10"
-                :class="{ 'error-input': formErrors.guests }"
-              />
-              <button 
-                type="button" 
-                @click="searchForm.guests = Math.min(10, searchForm.guests + 1)"
-                class="number-button"
-              >
-                +
-              </button>
-            </div>
-            <span v-if="formErrors.guests" class="error-message">{{ formErrors.guests }}</span>
-          </div>
-          
-          <div class="form-group">
-            <label for="checkIn">Check-in Date</label>
-            <input 
-              id="checkIn"
-              v-model="searchForm.checkIn"
-              type="date"
-              :min="todayFormatted"
-              :class="{ 'error-input': formErrors.checkIn }"
-            />
-            <span v-if="formErrors.checkIn" class="error-message">{{ formErrors.checkIn }}</span>
-          </div>
-          
-          <div class="form-group">
-            <label for="checkOut">Check-out Date</label>
-            <input 
-              id="checkOut"
-              v-model="searchForm.checkOut"
-              type="date"
-              :min="minCheckOutDate"
-              :class="{ 'error-input': formErrors.checkOut }"
-            />
-            <span v-if="formErrors.checkOut" class="error-message">{{ formErrors.checkOut }}</span>
-          </div>
-          
-          <button 
-            type="submit" 
-            class="search-button"
-            :disabled="isSubmitting"
-          >
-            {{ isSubmitting ? 'Searching...' : 'Search for Rooms' }}
-          </button>
-        </form>
-      </div>
-    </div>
-  </div>
-</template>
 
 <style lang="scss" scoped>
 .home-container {
@@ -371,7 +360,6 @@ const handleSubmit = async () => {
   }
 }
 
-// Responsive styles
 @media (max-width: 768px) {
   .hero-banner {
     height: 300px;

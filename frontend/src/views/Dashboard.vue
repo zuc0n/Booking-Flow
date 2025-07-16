@@ -1,3 +1,230 @@
+<template>
+  <div class="dashboard-container">
+    <div class="dashboard-header">
+      <h1 class="dashboard-title">My Bookings</h1>
+      <button @click="goToHome" class="new-booking-button">Book a Room</button>
+    </div>
+
+    <!-- Loading State -->
+    <div v-if="isLoading" class="loading-container">
+      <div class="loading-spinner"></div>
+      <p>Loading your bookings...</p>
+    </div>
+
+    <!-- Error State -->
+    <div v-else-if="error" class="error-container">
+      <p class="error-message">{{ error }}</p>
+      <button @click="fetchBookings" class="retry-button">Retry</button>
+    </div>
+
+    <!-- No Bookings State -->
+    <div v-else-if="bookings.length === 0" class="no-bookings-container">
+      <div class="no-bookings-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="16" y1="2" x2="16" y2="6"></line>
+          <line x1="8" y1="2" x2="8" y2="6"></line>
+          <line x1="3" y1="10" x2="21" y2="10"></line>
+        </svg>
+      </div>
+      <h2>No Bookings Found</h2>
+      <p>You haven't made any bookings yet. Start by booking a room.</p>
+      <button @click="goToHome" class="book-now-button">Book Now</button>
+    </div>
+
+    <!-- Bookings List -->
+    <div v-else class="bookings-content">
+      <!-- Tabs -->
+      <div class="booking-tabs">
+        <button
+            @click="setActiveTab('upcoming')"
+            :class="['tab-button', { active: activeTab === 'upcoming' }]"
+        >
+          Upcoming ({{ upcomingBookings.length }})
+        </button>
+        <button
+            @click="setActiveTab('past')"
+            :class="['tab-button', { active: activeTab === 'past' }]"
+        >
+          Past ({{ pastBookings.length }})
+        </button>
+        <button
+            @click="setActiveTab('cancelled')"
+            :class="['tab-button', { active: activeTab === 'cancelled' }]"
+        >
+          Cancelled ({{ cancelledBookings.length }})
+        </button>
+      </div>
+
+      <!-- Upcoming Bookings -->
+      <div v-if="activeTab === 'upcoming'" class="bookings-list">
+        <div v-if="upcomingBookings.length === 0" class="empty-list">
+          <p>You have no upcoming bookings.</p>
+        </div>
+
+        <div v-else class="booking-cards">
+          <div v-for="booking in upcomingBookings" :key="booking._id" class="booking-card">
+            <div class="booking-image">
+              <img :src="booking.roomId.imageUrl" :alt="booking.roomId.title" />
+            </div>
+            <div class="booking-details">
+              <div class="booking-header">
+                <h3 class="booking-title">{{ booking.roomId.title }}</h3>
+                <span class="booking-reference">Ref: {{ booking.reference }}</span>
+              </div>
+
+              <div class="booking-info">
+                <div class="info-group">
+                  <span class="info-label">Check-in:</span>
+                  <span class="info-value">{{ formatDate(booking.checkIn) }}</span>
+                </div>
+                <div class="info-group">
+                  <span class="info-label">Check-out:</span>
+                  <span class="info-value">{{ formatDate(booking.checkOut) }}</span>
+                </div>
+                <div class="info-group">
+                  <span class="info-label">Guests:</span>
+                  <span class="info-value">{{ booking.guests }}</span>
+                </div>
+                <div class="info-group">
+                  <span class="info-label">Total:</span>
+                  <span class="info-value price">{{ formatPrice(booking.total) }}</span>
+                </div>
+              </div>
+
+              <div class="booking-actions">
+                <button @click="showCancelConfirmation(booking)" class="cancel-button">
+                  Cancel Booking
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Past Bookings -->
+      <div v-if="activeTab === 'past'" class="bookings-list">
+        <div v-if="pastBookings.length === 0" class="empty-list">
+          <p>You have no past bookings.</p>
+        </div>
+
+        <div v-else class="booking-cards">
+          <div v-for="booking in pastBookings" :key="booking._id" class="booking-card">
+            <div class="booking-image">
+              <img :src="booking.roomId.imageUrl" :alt="booking.roomId.title" />
+            </div>
+            <div class="booking-details">
+              <div class="booking-header">
+                <h3 class="booking-title">{{ booking.roomId.title }}</h3>
+                <span class="booking-reference">Ref: {{ booking.reference }}</span>
+              </div>
+
+              <div class="booking-info">
+                <div class="info-group">
+                  <span class="info-label">Check-in:</span>
+                  <span class="info-value">{{ formatDate(booking.checkIn) }}</span>
+                </div>
+                <div class="info-group">
+                  <span class="info-label">Check-out:</span>
+                  <span class="info-value">{{ formatDate(booking.checkOut) }}</span>
+                </div>
+                <div class="info-group">
+                  <span class="info-label">Guests:</span>
+                  <span class="info-value">{{ booking.guests }}</span>
+                </div>
+                <div class="info-group">
+                  <span class="info-label">Total:</span>
+                  <span class="info-value price">{{ formatPrice(booking.total) }}</span>
+                </div>
+              </div>
+
+              <div class="booking-status completed">
+                <span>Completed</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cancelled Bookings -->
+      <div v-if="activeTab === 'cancelled'" class="bookings-list">
+        <div v-if="cancelledBookings.length === 0" class="empty-list">
+          <p>You have no cancelled bookings.</p>
+        </div>
+
+        <div v-else class="booking-cards">
+          <div v-for="booking in cancelledBookings" :key="booking._id" class="booking-card">
+            <div class="booking-image">
+              <img :src="booking.roomId.imageUrl" :alt="booking.roomId.title" />
+            </div>
+            <div class="booking-details">
+              <div class="booking-header">
+                <h3 class="booking-title">{{ booking.roomId.title }}</h3>
+                <span class="booking-reference">Ref: {{ booking.reference }}</span>
+              </div>
+
+              <div class="booking-info">
+                <div class="info-group">
+                  <span class="info-label">Check-in:</span>
+                  <span class="info-value">{{ formatDate(booking.checkIn) }}</span>
+                </div>
+                <div class="info-group">
+                  <span class="info-label">Check-out:</span>
+                  <span class="info-value">{{ formatDate(booking.checkOut) }}</span>
+                </div>
+                <div class="info-group">
+                  <span class="info-label">Guests:</span>
+                  <span class="info-value">{{ booking.guests }}</span>
+                </div>
+                <div class="info-group">
+                  <span class="info-label">Total:</span>
+                  <span class="info-value price">{{ formatPrice(booking.total) }}</span>
+                </div>
+              </div>
+
+              <div class="booking-status cancelled">
+                <span>Cancelled</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cancel Confirmation Modal -->
+    <div v-if="showCancelModal" class="modal-overlay">
+      <div class="modal-container">
+        <div class="modal-header">
+          <h2 class="modal-title">Cancel Booking</h2>
+          <button @click="closeCancelModal" class="modal-close">×</button>
+        </div>
+
+        <div class="modal-content">
+          <p>Are you sure you want to cancel your booking at <strong>{{ bookingToCancel?.roomId.title }}</strong>?</p>
+          <p>Check-in: <strong>{{ formatDate(bookingToCancel?.checkIn) }}</strong></p>
+          <p>This action cannot be undone.</p>
+
+          <div v-if="cancelError" class="modal-error">
+            {{ cancelError }}
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button @click="closeCancelModal" class="cancel-action">No, Keep Booking</button>
+          <button
+              @click="cancelBooking"
+              class="confirm-action"
+              :disabled="isCancelling"
+          >
+            {{ isCancelling ? 'Cancelling...' : 'Yes, Cancel Booking' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
@@ -8,28 +235,23 @@ const router = useRouter();
 const bookingStore = useBookingStore();
 const authStore = useAuthStore();
 
-// Check if user is authenticated
 const isAuthenticated = computed(() => authStore.isAuthenticated);
 const currentUser = computed(() => authStore.getUser);
 
-// Booking data
 const isLoading = ref(true);
 const error = ref('');
 const activeTab = ref('upcoming');
 
-// Confirmation modal
 const showCancelModal = ref(false);
 const bookingToCancel = ref(null);
 const isCancelling = ref(false);
 const cancelError = ref('');
 
-// Get bookings from store
 const bookings = computed(() => bookingStore.getBookings);
 const upcomingBookings = computed(() => bookingStore.getUpcomingBookings);
 const pastBookings = computed(() => bookingStore.getPastBookings);
 const cancelledBookings = computed(() => bookingStore.getCancelledBookings);
 
-// Check authentication and fetch bookings
 onMounted(async () => {
   if (!isAuthenticated.value) {
     router.push({ name: 'Login', query: { redirect: '/dashboard' } });
@@ -39,7 +261,6 @@ onMounted(async () => {
   await fetchBookings();
 });
 
-// Fetch bookings from API
 const fetchBookings = async () => {
   isLoading.value = true;
   error.value = '';
@@ -54,13 +275,11 @@ const fetchBookings = async () => {
   }
 };
 
-// Format date for display
 const formatDate = (dateString) => {
   const options = { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' };
   return new Date(dateString).toLocaleDateString('en-US', options);
 };
 
-// Format price with currency
 const formatPrice = (price) => {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -68,28 +287,24 @@ const formatPrice = (price) => {
   }).format(price);
 };
 
-// Calculate number of nights
 const calculateNights = (checkIn, checkOut) => {
   const start = new Date(checkIn);
   const end = new Date(checkOut);
   return Math.ceil((end - start) / (1000 * 60 * 60 * 24));
 };
 
-// Show cancel confirmation modal
 const showCancelConfirmation = (booking) => {
   bookingToCancel.value = booking;
   showCancelModal.value = true;
   cancelError.value = '';
 };
 
-// Close cancel confirmation modal
 const closeCancelModal = () => {
   showCancelModal.value = false;
   bookingToCancel.value = null;
   cancelError.value = '';
 };
 
-// Cancel booking
 const cancelBooking = async () => {
   if (!bookingToCancel.value) return;
   
@@ -113,242 +328,14 @@ const cancelBooking = async () => {
   }
 };
 
-// Change active tab
 const setActiveTab = (tab) => {
   activeTab.value = tab;
 };
 
-// Navigate to home
 const goToHome = () => {
   router.push({ name: 'Home' });
 };
 </script>
-
-<template>
-  <div class="dashboard-container">
-    <div class="dashboard-header">
-      <h1 class="dashboard-title">My Bookings</h1>
-      <button @click="goToHome" class="new-booking-button">Book a Room</button>
-    </div>
-    
-    <!-- Loading State -->
-    <div v-if="isLoading" class="loading-container">
-      <div class="loading-spinner"></div>
-      <p>Loading your bookings...</p>
-    </div>
-    
-    <!-- Error State -->
-    <div v-else-if="error" class="error-container">
-      <p class="error-message">{{ error }}</p>
-      <button @click="fetchBookings" class="retry-button">Retry</button>
-    </div>
-    
-    <!-- No Bookings State -->
-    <div v-else-if="bookings.length === 0" class="no-bookings-container">
-      <div class="no-bookings-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-          <line x1="16" y1="2" x2="16" y2="6"></line>
-          <line x1="8" y1="2" x2="8" y2="6"></line>
-          <line x1="3" y1="10" x2="21" y2="10"></line>
-        </svg>
-      </div>
-      <h2>No Bookings Found</h2>
-      <p>You haven't made any bookings yet. Start by booking a room.</p>
-      <button @click="goToHome" class="book-now-button">Book Now</button>
-    </div>
-    
-    <!-- Bookings List -->
-    <div v-else class="bookings-content">
-      <!-- Tabs -->
-      <div class="booking-tabs">
-        <button 
-          @click="setActiveTab('upcoming')" 
-          :class="['tab-button', { active: activeTab === 'upcoming' }]"
-        >
-          Upcoming ({{ upcomingBookings.length }})
-        </button>
-        <button 
-          @click="setActiveTab('past')" 
-          :class="['tab-button', { active: activeTab === 'past' }]"
-        >
-          Past ({{ pastBookings.length }})
-        </button>
-        <button 
-          @click="setActiveTab('cancelled')" 
-          :class="['tab-button', { active: activeTab === 'cancelled' }]"
-        >
-          Cancelled ({{ cancelledBookings.length }})
-        </button>
-      </div>
-      
-      <!-- Upcoming Bookings -->
-      <div v-if="activeTab === 'upcoming'" class="bookings-list">
-        <div v-if="upcomingBookings.length === 0" class="empty-list">
-          <p>You have no upcoming bookings.</p>
-        </div>
-        
-        <div v-else class="booking-cards">
-          <div v-for="booking in upcomingBookings" :key="booking._id" class="booking-card">
-            <div class="booking-image">
-              <img :src="booking.roomId.imageUrl" :alt="booking.roomId.title" />
-            </div>
-            <div class="booking-details">
-              <div class="booking-header">
-                <h3 class="booking-title">{{ booking.roomId.title }}</h3>
-                <span class="booking-reference">Ref: {{ booking.reference }}</span>
-              </div>
-              
-              <div class="booking-info">
-                <div class="info-group">
-                  <span class="info-label">Check-in:</span>
-                  <span class="info-value">{{ formatDate(booking.checkIn) }}</span>
-                </div>
-                <div class="info-group">
-                  <span class="info-label">Check-out:</span>
-                  <span class="info-value">{{ formatDate(booking.checkOut) }}</span>
-                </div>
-                <div class="info-group">
-                  <span class="info-label">Guests:</span>
-                  <span class="info-value">{{ booking.guests }}</span>
-                </div>
-                <div class="info-group">
-                  <span class="info-label">Total:</span>
-                  <span class="info-value price">{{ formatPrice(booking.total) }}</span>
-                </div>
-              </div>
-              
-              <div class="booking-actions">
-                <button @click="showCancelConfirmation(booking)" class="cancel-button">
-                  Cancel Booking
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Past Bookings -->
-      <div v-if="activeTab === 'past'" class="bookings-list">
-        <div v-if="pastBookings.length === 0" class="empty-list">
-          <p>You have no past bookings.</p>
-        </div>
-        
-        <div v-else class="booking-cards">
-          <div v-for="booking in pastBookings" :key="booking._id" class="booking-card">
-            <div class="booking-image">
-              <img :src="booking.roomId.imageUrl" :alt="booking.roomId.title" />
-            </div>
-            <div class="booking-details">
-              <div class="booking-header">
-                <h3 class="booking-title">{{ booking.roomId.title }}</h3>
-                <span class="booking-reference">Ref: {{ booking.reference }}</span>
-              </div>
-              
-              <div class="booking-info">
-                <div class="info-group">
-                  <span class="info-label">Check-in:</span>
-                  <span class="info-value">{{ formatDate(booking.checkIn) }}</span>
-                </div>
-                <div class="info-group">
-                  <span class="info-label">Check-out:</span>
-                  <span class="info-value">{{ formatDate(booking.checkOut) }}</span>
-                </div>
-                <div class="info-group">
-                  <span class="info-label">Guests:</span>
-                  <span class="info-value">{{ booking.guests }}</span>
-                </div>
-                <div class="info-group">
-                  <span class="info-label">Total:</span>
-                  <span class="info-value price">{{ formatPrice(booking.total) }}</span>
-                </div>
-              </div>
-              
-              <div class="booking-status completed">
-                <span>Completed</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Cancelled Bookings -->
-      <div v-if="activeTab === 'cancelled'" class="bookings-list">
-        <div v-if="cancelledBookings.length === 0" class="empty-list">
-          <p>You have no cancelled bookings.</p>
-        </div>
-        
-        <div v-else class="booking-cards">
-          <div v-for="booking in cancelledBookings" :key="booking._id" class="booking-card">
-            <div class="booking-image">
-              <img :src="booking.roomId.imageUrl" :alt="booking.roomId.title" />
-            </div>
-            <div class="booking-details">
-              <div class="booking-header">
-                <h3 class="booking-title">{{ booking.roomId.title }}</h3>
-                <span class="booking-reference">Ref: {{ booking.reference }}</span>
-              </div>
-              
-              <div class="booking-info">
-                <div class="info-group">
-                  <span class="info-label">Check-in:</span>
-                  <span class="info-value">{{ formatDate(booking.checkIn) }}</span>
-                </div>
-                <div class="info-group">
-                  <span class="info-label">Check-out:</span>
-                  <span class="info-value">{{ formatDate(booking.checkOut) }}</span>
-                </div>
-                <div class="info-group">
-                  <span class="info-label">Guests:</span>
-                  <span class="info-value">{{ booking.guests }}</span>
-                </div>
-                <div class="info-group">
-                  <span class="info-label">Total:</span>
-                  <span class="info-value price">{{ formatPrice(booking.total) }}</span>
-                </div>
-              </div>
-              
-              <div class="booking-status cancelled">
-                <span>Cancelled</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-    
-    <!-- Cancel Confirmation Modal -->
-    <div v-if="showCancelModal" class="modal-overlay">
-      <div class="modal-container">
-        <div class="modal-header">
-          <h2 class="modal-title">Cancel Booking</h2>
-          <button @click="closeCancelModal" class="modal-close">×</button>
-        </div>
-        
-        <div class="modal-content">
-          <p>Are you sure you want to cancel your booking at <strong>{{ bookingToCancel?.roomId.title }}</strong>?</p>
-          <p>Check-in: <strong>{{ formatDate(bookingToCancel?.checkIn) }}</strong></p>
-          <p>This action cannot be undone.</p>
-          
-          <div v-if="cancelError" class="modal-error">
-            {{ cancelError }}
-          </div>
-        </div>
-        
-        <div class="modal-actions">
-          <button @click="closeCancelModal" class="cancel-action">No, Keep Booking</button>
-          <button 
-            @click="cancelBooking" 
-            class="confirm-action"
-            :disabled="isCancelling"
-          >
-            {{ isCancelling ? 'Cancelling...' : 'Yes, Cancel Booking' }}
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
 
 <style lang="scss" scoped>
 .dashboard-container {
@@ -357,7 +344,6 @@ const goToHome = () => {
   padding: 2rem 1.5rem;
 }
 
-// Dashboard Header
 .dashboard-header {
   display: flex;
   justify-content: space-between;
@@ -393,7 +379,6 @@ const goToHome = () => {
   }
 }
 
-// Loading State
 .loading-container {
   display: flex;
   flex-direction: column;
@@ -422,7 +407,6 @@ const goToHome = () => {
   }
 }
 
-// Error State
 .error-container {
   display: flex;
   flex-direction: column;
@@ -454,7 +438,6 @@ const goToHome = () => {
   }
 }
 
-// No Bookings State
 .no-bookings-container {
   display: flex;
   flex-direction: column;
@@ -505,7 +488,6 @@ const goToHome = () => {
   }
 }
 
-// Bookings Content
 .bookings-content {
   background-color: white;
   border-radius: 8px;
@@ -513,7 +495,6 @@ const goToHome = () => {
   overflow: hidden;
 }
 
-// Booking Tabs
 .booking-tabs {
   display: flex;
   border-bottom: 1px solid #eee;
@@ -547,7 +528,6 @@ const goToHome = () => {
   }
 }
 
-// Bookings List
 .bookings-list {
   padding: 1.5rem;
   
@@ -558,7 +538,6 @@ const goToHome = () => {
   }
 }
 
-// Booking Cards
 .booking-cards {
   display: flex;
   flex-direction: column;

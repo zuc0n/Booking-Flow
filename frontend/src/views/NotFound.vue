@@ -1,17 +1,3 @@
-<script setup>
-import { useRouter } from 'vue-router';
-
-const router = useRouter();
-
-const goBack = () => {
-  router.back();
-};
-
-const goHome = () => {
-  router.push('/');
-};
-</script>
-
 <template>
   <div class="not-found-container">
     <div class="not-found-card">
@@ -31,6 +17,20 @@ const goHome = () => {
     </div>
   </div>
 </template>
+
+<script setup>
+import { useRouter } from 'vue-router';
+
+const router = useRouter();
+
+const goBack = () => {
+  router.back();
+};
+
+const goHome = () => {
+  router.push('/');
+};
+</script>
 
 <style lang="scss" scoped>
 .not-found-container {
