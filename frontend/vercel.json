@@ -3,7 +3,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://booking-flow-mu.vercel.app/:path*"
+      "destination": "https://booking-flow-six.vercel.app/:path*"
     }
   ],
   "headers": [

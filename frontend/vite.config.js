@@ -8,7 +8,7 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': {
-        target: 'https://booking-flow-mu.vercel.app',
+        target: 'https://booking-flow-six.vercel.app',
         changeOrigin: true,
         secure: false
       }
