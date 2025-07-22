@@ -13,7 +13,8 @@ app.use(cors({
   origin: "*",
   methods: ['GET','HEAD','PUT','PATCH','POST','DELETE','OPTIONS'],
   allowedHeaders: ['Content-Type','Authorization','X-Requested-With'],
-  credentials: true
+  credentials: true,
+  preflightContinue: false,
 }));
 app.options('*', cors());
 
